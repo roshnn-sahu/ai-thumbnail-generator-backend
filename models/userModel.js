@@ -15,12 +15,11 @@ const userSchema = new mongoose.Schema({
         default: "free",
     },
 
-    stripeCustomerId: String,
-    stripeSubscriptionId: String,
+    stripeCustomerId: { type: String, default: null },
+    stripeSubscriptionId: { type: String, default: null },
 
     subscriptionStatus: {
         type: String,
-        enum: ["active", "canceled", "past_due", "incomplete"],
         default: null,
     },
     currency: {
@@ -28,7 +27,12 @@ const userSchema = new mongoose.Schema({
         enum: ["usd", "inr"],
     },
 
-    credits: { type: Number, default: 3 },
+
+    credits: {
+        type: mongoose.Schema.Types.Mixed,
+        default: 3,
+    },
+
     lastCreditReset: {
         type: Date,
         default: Date.now,
