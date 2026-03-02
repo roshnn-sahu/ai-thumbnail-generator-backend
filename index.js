@@ -16,8 +16,9 @@ import { connectDB } from "./db/db.js";
 connectDB();
 
 const app = express();
-
 app.use(cors());
+app.use(express.json());
+
 app.use(helmet());
 app.use(morgan("dev"));
 
