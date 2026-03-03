@@ -52,18 +52,18 @@ export const subscriptionWebhook = async (req, res) => {
     // Handle the event
     if (event.type === 'checkout.session.completed') {
         const session = event.data.object;
-        console.log("session:", session)
+
         // Safety checks for metadata
         const metadata = session.metadata || {};
-        const userId = metadata.userId || session.client_reference_id;
+        const userId = metadata.userId || session.client_reference_id; // MongoDB _id (fallback)
+        const clerkId = metadata.clerkId;                               // Clerk ID (primary)
         const internalPlanId = metadata.internalPlanId || metadata.planId || "unknown";
-        const clerkId = metadata.clerkId;
 
         console.log(`💳 Payment successful. Session: ${session.id}`);
-        console.log(`👤 User: ${userId}, Plan: ${internalPlanId}, ClerkId: ${clerkId}`);
+        console.log(`👤 ClerkId: ${clerkId}, UserId: ${userId}, Plan: ${internalPlanId}`);
 
-        if (!userId) {
-            console.warn("⚠️ Webhook skipped: No userId or client_reference_id found in session.");
+        if (!clerkId && !userId) {
+            console.warn("⚠️ Webhook skipped: No clerkId or userId found in session metadata.");
             return res.json({ received: true });
         }
 
@@ -77,12 +77,12 @@ export const subscriptionWebhook = async (req, res) => {
                 console.log("ℹ️ No subscription ID found in session (this is normal for some test triggers).");
             }
 
-            // 1. Create a detailed Subscription record if we have clerkId and subscription details
-            if (clerkId && session.subscription && subscriptionData) {
+            // 1. Create a detailed Subscription record — store both IDs for future-proofing
+            if (session.subscription && subscriptionData) {
                 try {
                     await subscriptionModel.create({
-                        userId,
-                        clerkId,
+                        userId: userId || undefined,  // MongoDB _id (if available)
+                        clerkId,                      // Clerk ID (always present)
                         stripeCustomerId: session.customer,
                         stripeSubscriptionId: session.subscription,
                         plan: internalPlanId,
@@ -97,7 +97,7 @@ export const subscriptionWebhook = async (req, res) => {
                     // Continue anyway to update user profile
                 }
             } else {
-                console.warn(`⚠️ Skipping subscription record creation: Missing ${!clerkId ? 'clerkId' : 'subscription data'}`);
+                console.warn("⚠️ Skipping subscription record creation: Missing subscription data");
             }
 
             // 2. Update user's main profile
@@ -123,16 +123,29 @@ export const subscriptionWebhook = async (req, res) => {
             } else {
                 finalUpdate = {
                     $set: updateData,
-                    $inc: { credits: creditsToAdd }
+                    $set: { ...updateData, credits: creditsToAdd }
                 };
             }
 
-            const updatedUser = await userModel.findByIdAndUpdate(userId, finalUpdate, { new: true });
+            // ✅ Primary: find by clerkId (never changes)
+            // ✅ Fallback: find by MongoDB _id (in case clerkId is missing for legacy records)
+            let updatedUser = null;
+            if (clerkId) {
+                updatedUser = await userModel.findOneAndUpdate(
+                    { clerkId },
+                    finalUpdate,
+                    { new: true }
+                );
+            }
+            if (!updatedUser && userId) {
+                console.warn(`⚠️ clerkId lookup failed, falling back to userId: ${userId}`);
+                updatedUser = await userModel.findByIdAndUpdate(userId, finalUpdate, { new: true });
+            }
 
             if (!updatedUser) {
-                console.error(`❌ User not found in database: ${userId}`);
+                console.error(`❌ User not found in database. clerkId: ${clerkId}, userId: ${userId}`);
             } else {
-                console.log(`✅ User ${userId} updated. New Plan: ${updatedUser.plan}, Credits Added: ${creditsToAdd}`);
+                console.log(`✅ User updated. clerkId: ${clerkId}, userId: ${userId}, Plan: ${updatedUser.plan}, Credits: ${updatedUser.credits}`);
             }
         } catch (dbErr) {
             console.error("❌ Database Update Error after Webhook:", dbErr);
