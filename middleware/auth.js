@@ -14,12 +14,12 @@ export const requireAuth = async (
         }
 
         const token = header.replace("Bearer ", "");
-
+       
         // ✅ verify Clerk token
         const payload = await verifyToken(token, {
             secretKey: process.env.CLERK_SECRET_KEY,
         });
-     
+
         const clerkId = payload.sub; // THIS IS THE USER ID
 
         // ✅ auto create user in MongoDB
