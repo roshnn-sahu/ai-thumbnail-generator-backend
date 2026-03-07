@@ -2,39 +2,35 @@ import { stripe } from "../config/stripe.js";
 import userModel from "../models/userModel.js";
 import subscriptionModel from "../models/subscriptionModel.js";
 
-import { createSubscriptionCheckout } from "../services/subscription.services.js";
+import { createRazorpaySubscription } from "../services/subscription.services.js";
 
-export const subscriptionCheckout = async (req, res, next) => {
+export const createSubscription = async (req, res) => {
     try {
-        const { planId, isYearly, currency } = req.body;
 
-        // Basic validation (you can move this to validator later)
-        if (!planId || typeof isYearly !== "boolean" || !currency) {
-            return res.status(400).json({
-                success: false,
-                message: "Missing or invalid parameters",
-            });
-        }
+        const { planId } = req.body;
+        const user = req.user;
 
-        const session = await createSubscriptionCheckout({
+        const subscription = await createRazorpaySubscription({
             planId,
-            isYearly,
-            currency,
-            user: req.user,
-            email: req.auth?.email,
-            frontendUrl: process.env.FRONTEND_URL || "http://localhost:3000",
+            user,
         });
 
         return res.status(200).json({
             success: true,
-            url: session.url,
+            subscription,
         });
 
     } catch (error) {
-        next(error); // Let global error handler manage it
+
+        console.error(error);
+
+        return res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+
     }
 };
-
 
 
 export const subscriptionWebhook = async (req, res) => {

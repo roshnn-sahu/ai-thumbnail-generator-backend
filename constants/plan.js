@@ -1,18 +1,33 @@
 export const PLANS = {
-    "prod_U391ti2DGLnF58": {
+    plan_SNuqOid3vopvhN: {
         internalId: "pro",
         name: "Pro",
+        price: 599,
+        duration: "monthly",
+        days: 30
     },
-    "prod_U3U9cff92HFjt8": {
+
+    plan_SNvsI7uq64Prqj: {
         internalId: "pro",
         name: "Pro",
+        price: 4999,
+        duration: "yearly",
+        days: 365
     },
-    "prod_U3920hfgd5IEdQ": {
+
+    plan_SNvuCaLmLtEtZh: {
         internalId: "creator",
         name: "Creator",
+        price: 999,
+        duration: "monthly",
+        days: 30
     },
-    "prod_U3UBV0UsfXacN7": {
+
+    plan_SNvwfidE7ZgAMQ: {
         internalId: "creator",
         name: "Creator",
-    },
+        price: 8999,
+        duration: "yearly",
+        days: 365
+    }
 };

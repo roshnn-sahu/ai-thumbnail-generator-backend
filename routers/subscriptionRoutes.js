@@ -1,10 +1,10 @@
 import express from "express"
-import { subscriptionCheckout, subscriptionWebhook } from "../controllers/subscriptionController.js"
+import { createSubscription, subscriptionWebhook } from "../controllers/subscriptionController.js"
 import { requireAuth } from "../middleware/auth.js";
 
 const router = express.Router();
 
-router.post("/create-checkout-session", express.json(), requireAuth, subscriptionCheckout);
+router.post("/create-subscription", express.json(), requireAuth, createSubscription);
 router.post("/webhook", express.raw({ type: 'application/json' }), subscriptionWebhook);
 
 
