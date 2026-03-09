@@ -20,8 +20,8 @@ const subscriptionSchema = new mongoose.Schema({
 
   status: String,
 
-  currentPeriodStart: Date,
-  currentPeriodEnd: Date,
+  subscriptionStart: Date,
+  subscriptionEnd: Date,
 
   cancelAtPeriodEnd: Boolean,
 

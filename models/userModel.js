@@ -25,6 +25,8 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  subscriptionStart: { type: Date, default: null },
+  subscriptionEnd: { type: Date, default: null },
   currency: {
     type: String,
     enum: ["usd", "inr"],

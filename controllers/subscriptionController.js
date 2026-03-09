@@ -1,8 +1,8 @@
 import crypto from "crypto";
 import userModel from "../models/userModel.js";
-import subscriptionModel from "../models/subscriptionModel.js";
+import subscriptoinModel from "../models/subscriptionModel.js";
 import { PLANS } from "../constants/plan.js";
-import {razorpay} from "../config/razorpay.js";
+import { razorpay } from "../config/razorpay.js";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -87,8 +87,8 @@ export const subscriptionWebhook = async (req, res) => {
           razorpaySubscriptionId: subscription.id,
           plan: plan.internalId,
           status: subscription.status,
-          currentPeriodStart: new Date(subscription.current_start * 1000),
-          currentPeriodEnd: new Date(subscription.current_end * 1000),
+          subscriptionStart: new Date(subscription.current_start * 1000),
+          subscriptionEnd: new Date(subscription.current_end * 1000),
           cancelAtPeriodEnd: false,
         },
         { upsert: true, new: true },
@@ -108,6 +108,8 @@ export const subscriptionWebhook = async (req, res) => {
           razorpayCustomerId: subscription.customer_id,
           razorpaySubscriptionId: subscription.id,
           subscriptionStatus: "active",
+          subscriptionStart: new Date(subscription.current_start * 1000),
+          subscriptionEnd: new Date(subscription.current_end * 1000),
           credits: creditsToAdd,
         },
       );
@@ -188,11 +190,28 @@ export const cancelSubscription = async (req, res) => {
     res.json({
       success: true,
       message: "Subscription cancelled",
-      data: response
+      data: response,
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Cancel failed" });
+  }
+};
+
+export const getBillingHistory = async (req, res) => {
+  try {
+    const clerkId = req.user.clerkId;
+
+    const payments = await subscriptoinModel
+      .find({ clerkId })
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      payments,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false });
   }
 };
