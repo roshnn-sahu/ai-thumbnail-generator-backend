@@ -14,7 +14,6 @@ export const createRazorpaySubscription = async ({
   const name = `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`;
   let razorpayCustomerId = user.razorpayCustomerId;
 
-
   // If customer doesn't exist yet, create one
   if (!razorpayCustomerId) {
     const customer = await razorpay.customers.create({
@@ -30,7 +29,7 @@ export const createRazorpaySubscription = async ({
     // Save customer id in database
     await userModel.findOneAndUpdate(
       { clerkId: user.clerkId },
-      { razorpayCustomerId }
+      { razorpayCustomerId },
     );
   }
 

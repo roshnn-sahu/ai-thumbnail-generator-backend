@@ -10,6 +10,7 @@ import { createRazorpaySubscription } from "../services/subscription.services.js
 export const createSubscription = async (req, res) => {
   try {
     const { planId, clerkUser } = req.body;
+   
     const user = req.user;
     const subscription = await createRazorpaySubscription({
       planId,
