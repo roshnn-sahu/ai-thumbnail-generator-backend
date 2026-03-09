@@ -2,6 +2,7 @@ import crypto from "crypto";
 import userModel from "../models/userModel.js";
 import subscriptionModel from "../models/subscriptionModel.js";
 import { PLANS } from "../constants/plan.js";
+import {razorpay} from "../config/razorpay.js";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -10,7 +11,7 @@ import { createRazorpaySubscription } from "../services/subscription.services.js
 export const createSubscription = async (req, res) => {
   try {
     const { planId, clerkUser } = req.body;
-   
+
     const user = req.user;
     const subscription = await createRazorpaySubscription({
       planId,
@@ -147,6 +148,7 @@ export const subscriptionWebhook = async (req, res) => {
         {
           subscriptionStatus: "cancelled",
           plan: "free",
+          credits: 0,
         },
       );
 
@@ -174,5 +176,23 @@ export const subscriptionWebhook = async (req, res) => {
   } catch (error) {
     console.error("❌ Razorpay Webhook Error:", error);
     res.status(500).send("Webhook error");
+  }
+};
+
+export const cancelSubscription = async (req, res) => {
+  try {
+    const subscriptionId = req.user.razorpaySubscriptionId;
+
+    const response = await razorpay.subscriptions.cancel(subscriptionId);
+
+    res.json({
+      success: true,
+      message: "Subscription cancelled",
+      data: response
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Cancel failed" });
   }
 };
