@@ -1,34 +1,34 @@
 import mongoose from "mongoose";
 
 const subscriptionSchema = new mongoose.Schema({
-    userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-    },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  },
 
-    clerkId: {
-        type: String,
-        required: true,
-    },
+  clerkId: {
+    type: String,
+    required: true,
+  },
+  razorpayPlanId: String,
+  razorpayCustomerId: String,
+  razorpaySubscriptionId: String,
 
-    stripeCustomerId: String,
-    stripeSubscriptionId: String,
+  plan: {
+    type: String,
+  },
 
-    plan: {
-        type: String,
-    },
+  status: String,
 
-    status: String,
+  currentPeriodStart: Date,
+  currentPeriodEnd: Date,
 
-    currentPeriodStart: Date,
-    currentPeriodEnd: Date,
+  cancelAtPeriodEnd: Boolean,
 
-    cancelAtPeriodEnd: Boolean,
-
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
 });
 
 const subscriptionModel = mongoose.model("Subscription", subscriptionSchema);

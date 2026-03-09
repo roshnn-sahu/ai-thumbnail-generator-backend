@@ -1,152 +1,177 @@
-import { stripe } from "../config/stripe.js";
+import crypto from "crypto";
 import userModel from "../models/userModel.js";
 import subscriptionModel from "../models/subscriptionModel.js";
+import { PLANS } from "../constants/plan.js";
+import dotenv from "dotenv";
+dotenv.config();
 
 import { createRazorpaySubscription } from "../services/subscription.services.js";
 
 export const createSubscription = async (req, res) => {
-    try {
+  try {
+    const { planId, clerkUser } = req.body;
+    const user = req.user;
+    const subscription = await createRazorpaySubscription({
+      planId,
+      user,
+      clerkUser,
+    });
+    console.log(subscription, "subs");
+    return res.status(200).json({
+      success: true,
+      subscription,
+    });
+  } catch (error) {
+    console.error(error);
 
-        const { planId } = req.body;
-        const user = req.user;
-
-        const subscription = await createRazorpaySubscription({
-            planId,
-            user,
-        });
-
-        return res.status(200).json({
-            success: true,
-            subscription,
-        });
-
-    } catch (error) {
-
-        console.error(error);
-
-        return res.status(500).json({
-            success: false,
-            message: error.message,
-        });
-
-    }
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
 };
 
-
 export const subscriptionWebhook = async (req, res) => {
-    const sig = req.headers['stripe-signature'];
+  try {
+    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    const razorpaySignature = req.headers["x-razorpay-signature"];
 
-    let event;
+    const body = req.body.toString();
 
-    try {
-        event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
-    } catch (err) {
-        console.error(`Webhook Error: ${err.message}`);
-        return res.status(400).send(`Webhook Error: ${err.message}`);
+    const expectedSignature = crypto
+      .createHmac("sha256", webhookSecret)
+      .update(body)
+      .digest("hex");
+
+    if (expectedSignature !== razorpaySignature) {
+      console.error("❌ Invalid Razorpay webhook signature");
+      return res.status(400).send("Invalid signature");
     }
 
-    // Handle the event
-    if (event.type === 'checkout.session.completed') {
-        const session = event.data.object;
+    const data = JSON.parse(body);
+    const event = data.event;
 
-        // Safety checks for metadata
-        const metadata = session.metadata || {};
-        const userId = metadata.userId || session.client_reference_id; // MongoDB _id (fallback)
-        const clerkId = metadata.clerkId;                               // Clerk ID (primary)
-        const internalPlanId = metadata.internalPlanId || metadata.planId || "unknown";
+    console.log("📩 Razorpay Webhook Event:", event);
 
-        console.log(`💳 Payment successful. Session: ${session.id}`);
-        console.log(`👤 ClerkId: ${clerkId}, UserId: ${userId}, Plan: ${internalPlanId}`);
+    // -----------------------------
+    // SUBSCRIPTION ACTIVATED
+    // -----------------------------
+    if (event === "subscription.activated") {
+      const subscription = data.payload.subscription.entity;
 
-        if (!clerkId && !userId) {
-            console.warn("⚠️ Webhook skipped: No clerkId or userId found in session metadata.");
-            return res.json({ received: true });
-        }
+      const clerkId = subscription.notes?.userId;
+      const planId = subscription.notes?.planId;
+      const plan = PLANS[planId];
 
-        try {
-            let subscriptionData = null;
-            if (session.subscription) {
-                // Fetch full subscription details if available
-                subscriptionData = await stripe.subscriptions.retrieve(session.subscription);
-                console.log("📄 Subscription retrieved:", subscriptionData.id);
-            } else {
-                console.log("ℹ️ No subscription ID found in session (this is normal for some test triggers).");
-            }
+      const user = await userModel.findOne({ clerkId });
 
-            // 1. Create a detailed Subscription record — store both IDs for future-proofing
-            if (session.subscription && subscriptionData) {
-                try {
-                    await subscriptionModel.create({
-                        userId: userId || undefined,  // MongoDB _id (if available)
-                        clerkId,                      // Clerk ID (always present)
-                        stripeCustomerId: session.customer,
-                        stripeSubscriptionId: session.subscription,
-                        plan: internalPlanId,
-                        status: subscriptionData.status,
-                        currentPeriodStart: new Date(subscriptionData.current_period_start * 1000),
-                        currentPeriodEnd: new Date(subscriptionData.current_period_end * 1000),
-                        cancelAtPeriodEnd: subscriptionData.cancel_at_period_end,
-                    });
-                    console.log("✅ Subscription record created.");
-                } catch (subErr) {
-                    console.error("❌ Error creating subscription record:", subErr.message);
-                    // Continue anyway to update user profile
-                }
-            } else {
-                console.warn("⚠️ Skipping subscription record creation: Missing subscription data");
-            }
+      if (!user) {
+        console.log("❌ User not found");
+        return res.status(404).send("User not found");
+      }
 
-            // 2. Update user's main profile
-            let creditsToAdd = 0;
-            if (internalPlanId === "pro") creditsToAdd = 300;
-            else if (internalPlanId === "creator") creditsToAdd = "unlimited";
+      console.log(
+        `✅ Subscription activated | User: ${clerkId} | Plan: ${planId}`,
+      );
 
-            const updateData = {
-                plan: internalPlanId !== "unknown" ? internalPlanId : undefined,
-                stripeCustomerId: session.customer,
-                stripeSubscriptionId: session.subscription || undefined,
-                subscriptionStatus: subscriptionData ? subscriptionData.status : "active"
-            };
+      // Save subscription
+      await subscriptionModel.findOneAndUpdate(
+        { razorpaySubscriptionId: subscription.id },
+        {
+          userId: user._id,
+          clerkId: clerkId,
+          razorpayPlanId: planId,
+          razorpayCustomerId: subscription.customer_id,
+          razorpaySubscriptionId: subscription.id,
+          plan: plan.internalId,
+          status: subscription.status,
+          currentPeriodStart: new Date(subscription.current_start * 1000),
+          currentPeriodEnd: new Date(subscription.current_end * 1000),
+          cancelAtPeriodEnd: false,
+        },
+        { upsert: true, new: true },
+      );
 
-            // Remove undefined fields
-            Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
+      let creditsToAdd = 0;
 
-            let finalUpdate;
-            if (creditsToAdd === "unlimited") {
-                finalUpdate = {
-                    $set: { ...updateData, credits: "unlimited" }
-                };
-            } else {
-                finalUpdate = {
-                    $set: updateData,
-                    $set: { ...updateData, credits: creditsToAdd }
-                };
-            }
+      if (plan.internalId === "pro") creditsToAdd = 300;
+      else if (plan.internalId === "creator") creditsToAdd = "unlimited";
 
-            // ✅ Primary: find by clerkId (never changes)
-            // ✅ Fallback: find by MongoDB _id (in case clerkId is missing for legacy records)
-            let updatedUser = null;
-            if (clerkId) {
-                updatedUser = await userModel.findOneAndUpdate(
-                    { clerkId },
-                    finalUpdate,
-                    { new: true }
-                );
-            }
-            if (!updatedUser && userId) {
-                console.warn(`⚠️ clerkId lookup failed, falling back to userId: ${userId}`);
-                updatedUser = await userModel.findByIdAndUpdate(userId, finalUpdate, { new: true });
-            }
+      // Update user
+      await userModel.findOneAndUpdate(
+        { clerkId },
+        {
+          plan: plan.internalId,
+          razorpayPlanId: planId,
+          razorpayCustomerId: subscription.customer_id,
+          razorpaySubscriptionId: subscription.id,
+          subscriptionStatus: "active",
+          credits: creditsToAdd,
+        },
+      );
 
-            if (!updatedUser) {
-                console.error(`❌ User not found in database. clerkId: ${clerkId}, userId: ${userId}`);
-            } else {
-                console.log(`✅ User updated. clerkId: ${clerkId}, userId: ${userId}, Plan: ${updatedUser.plan}, Credits: ${updatedUser.credits}`);
-            }
-        } catch (dbErr) {
-            console.error("❌ Database Update Error after Webhook:", dbErr);
-        }
+      console.log("🎉 User subscription activated");
     }
 
-    res.json({ received: true });
+    // -----------------------------
+    // RECURRING PAYMENT SUCCESS
+    // -----------------------------
+    if (event === "subscription.charged") {
+      const subscription = data.payload.subscription.entity;
+
+      await subscriptionModel.findOneAndUpdate(
+        { razorpaySubscriptionId: subscription.id },
+        {
+          status: subscription.status,
+          currentPeriodStart: new Date(subscription.current_start * 1000),
+          currentPeriodEnd: new Date(subscription.current_end * 1000),
+        },
+      );
+
+      console.log(
+        `💳 Recurring payment success for subscription ${subscription.id}`,
+      );
+    }
+
+    // -----------------------------
+    // SUBSCRIPTION CANCELLED
+    // -----------------------------
+    if (event === "subscription.cancelled") {
+      const subscription = data.payload.subscription.entity;
+
+      const clerkId = subscription.notes?.userId;
+
+      await userModel.findOneAndUpdate(
+        { clerkId },
+        {
+          subscriptionStatus: "cancelled",
+          plan: "free",
+        },
+      );
+
+      await subscriptionModel.findOneAndUpdate(
+        { razorpaySubscriptionId: subscription.id },
+        {
+          status: "cancelled",
+          cancelAtPeriodEnd: true,
+        },
+      );
+
+      console.log(`🚫 Subscription cancelled for user ${clerkId}`);
+    }
+
+    // -----------------------------
+    // PAYMENT FAILED
+    // -----------------------------
+    if (event === "payment.failed") {
+      const payment = data.payload.payment.entity;
+
+      console.log("❌ Payment failed:", payment.id);
+    }
+
+    res.status(200).json({ received: true });
+  } catch (error) {
+    console.error("❌ Razorpay Webhook Error:", error);
+    res.status(500).send("Webhook error");
+  }
 };
