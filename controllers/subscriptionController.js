@@ -16,7 +16,7 @@ export const createSubscription = async (req, res) => {
       user,
       clerkUser,
     });
-    console.log(subscription, "subs");
+
     return res.status(200).json({
       success: true,
       subscription,
@@ -26,7 +26,7 @@ export const createSubscription = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: error,
     });
   }
 };
