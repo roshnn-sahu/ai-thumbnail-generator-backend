@@ -34,6 +34,12 @@ export const generateThumbnail = async (req, res) => {
         const { imageBase64, instruction, isRemix, aspectRatio, remixImages } =
             req.body;
 
+        if (isRemix && user.plan === "free") {
+            return res.status(403).json({
+                message: "Remix mode is only available for Pro and Creator plans. Upgrade to unlock!",
+            });
+        }
+
         if (!imageBase64)
             return res.status(400).json({ error: "Image base64 is required" });
 
