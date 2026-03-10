@@ -7,8 +7,8 @@ import morgan from "morgan";
 import userRoutes from "./routers/userRoutes.js";
 import generateRoutes from "./routers/generateRoutes.js";
 import subscriptionRoutes from "./routers/subscriptionRoutes.js";
+import resetCreditsRoutes from "./routers/resetCreditsRoutes.js"
 
-import "./jobs/resetDailyUsage.js";
 
 import { connectDB } from "./db/db.js";
 connectDB();
@@ -50,7 +50,7 @@ app.get("/", (req, res) => {
 
 app.use("/api/users", userRoutes);
 app.use("/api/generate", generateRoutes);
-
+app.use("/api/cron",resetCreditsRoutes)
 // Global Error Handler
 app.use((err, req, res, next) => {
   console.error("❌ Global Error Handler:", err.stack || err.message);
