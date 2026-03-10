@@ -96,7 +96,7 @@ export const subscriptionWebhook = async (req, res) => {
 
       let creditsToAdd = 0;
 
-      if (plan.internalId === "pro") creditsToAdd = 300;
+      if (plan.internalId === "pro") creditsToAdd = 500;
       else if (plan.internalId === "creator") creditsToAdd = "unlimited";
 
       // Update user
