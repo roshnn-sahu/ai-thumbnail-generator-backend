@@ -41,6 +41,6 @@ export const requireAuth = async (
 
         next();
     } catch (err) {
-        return res.status(401).json({ error: "Invalid token" });
+        return res.status(401).json({ error:err ,message:"Invalid Token"});
     }
 };
