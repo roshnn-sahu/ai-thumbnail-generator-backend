@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import userModel from "../models/userModel.js";
-import subscriptoinModel from "../models/subscriptionModel.js";
+import subscriptionModel from "../models/subscriptionModel.js";
 import { PLANS } from "../constants/plan.js";
 import { razorpay } from "../config/razorpay.js";
 import dotenv from "dotenv";
@@ -201,7 +201,7 @@ export const getBillingHistory = async (req, res) => {
   try {
     const clerkId = req.user.clerkId;
 
-    const payments = await subscriptoinModel
+    const payments = await subscriptionModel
       .find({ clerkId })
       .sort({ createdAt: -1 });
 
