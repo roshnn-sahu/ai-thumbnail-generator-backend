@@ -149,8 +149,7 @@ export const subscriptionWebhook = async (req, res) => {
         { clerkId },
         {
           subscriptionStatus: "cancelled",
-          plan: "free",
-          credits: 0,
+         
         },
       );
 

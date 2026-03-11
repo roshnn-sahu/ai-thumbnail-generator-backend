@@ -2,6 +2,7 @@ import express from "express"
 import { createSubscription, subscriptionWebhook,cancelSubscription,getBillingHistory } from "../controllers/subscriptionController.js"
 import { requireAuth } from "../middleware/auth.js";
 
+
 const router = express.Router();
 
 router.post("/create-subscription", express.json(), requireAuth, createSubscription);
