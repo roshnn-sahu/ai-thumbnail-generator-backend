@@ -46,8 +46,8 @@ const OFFLINE = {
   },
 };
 const ONLINE = {
-  plan_SPs00Xh2kyEAJ6: {
-    razorpayPlanId: "plan_SPs00Xh2kyEAJ6",
+  plan_SP4bUHqL0ug9NF: {
+    razorpayPlanId: "plan_SP4bUHqL0ug9NF",
     internalId: "pro",
     name: "Pro",
     price: 599,
