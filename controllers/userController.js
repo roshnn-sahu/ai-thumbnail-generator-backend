@@ -25,7 +25,7 @@ export const syncUser = async (req, res) => {
 export const getUser = async (req, res) => {
     try {
         const { sub, sessionClaims } = req.auth;
-
+        
         let user = await userModel.findOne({ clerkId: sub });
         if (!user) {
             return res.status(403).json({ success: false, message: "user not found" })

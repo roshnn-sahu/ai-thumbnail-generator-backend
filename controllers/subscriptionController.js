@@ -111,6 +111,7 @@ export const subscriptionWebhook = async (req, res) => {
           subscriptionStart: new Date(subscription.current_start * 1000),
           subscriptionEnd: new Date(subscription.current_end * 1000),
           credits: creditsToAdd,
+          generationCount:0
         },
       );
 
@@ -138,6 +139,61 @@ export const subscriptionWebhook = async (req, res) => {
     }
 
     // -----------------------------
+    // SUBSCRIPTION UPDATED (UPGRADE / DOWNGRADE)
+    // -----------------------------
+    if (event === "subscription.updated") {
+      const subscription = data.payload.subscription.entity;
+
+      const clerkId = subscription.notes?.userId;
+      const planId = subscription.plan_id;
+
+      const plan = PLANS[planId];
+
+      const user = await userModel.findOne({ clerkId });
+
+      if (!user) {
+        console.log("❌ User not found");
+        return res.status(404).send("User not found");
+      }
+
+      console.log(
+        `🔄 Subscription updated | User: ${clerkId} | New Plan: ${planId}`,
+      );
+
+      let creditsToAdd = 0;
+
+      if (plan.internalId === "pro") creditsToAdd = 500;
+      else if (plan.internalId === "creator") creditsToAdd = "unlimited";
+
+      // Update subscription document
+      await subscriptionModel.findOneAndUpdate(
+        { razorpaySubscriptionId: subscription.id },
+        {
+          razorpayPlanId: planId,
+          plan: plan.internalId,
+          status: subscription.status,
+          subscriptionStart: new Date(subscription.current_start * 1000),
+          subscriptionEnd: new Date(subscription.current_end * 1000),
+        },
+      );
+
+      // Update user
+      await userModel.findOneAndUpdate(
+        { clerkId },
+        {
+          plan: plan.internalId,
+          razorpayPlanId: planId,
+          subscriptionStatus: subscription.status,
+          subscriptionStart: new Date(subscription.current_start * 1000),
+          subscriptionEnd: new Date(subscription.current_end * 1000),
+          credits: creditsToAdd,
+        },
+      );
+
+      console.log("✅ User plan updated successfully");
+    }
+
+    // -----------------------------
     // SUBSCRIPTION CANCELLED
     // -----------------------------
     if (event === "subscription.cancelled") {
@@ -149,7 +205,6 @@ export const subscriptionWebhook = async (req, res) => {
         { clerkId },
         {
           subscriptionStatus: "cancelled",
-         
         },
       );
 

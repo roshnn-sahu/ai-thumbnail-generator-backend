@@ -12,9 +12,12 @@ export const createRazorpaySubscription = async ({
 
   const email = clerkUser.primaryEmailAddress?.emailAddress;
   const name = `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`;
+
   let razorpayCustomerId = user.razorpayCustomerId;
 
-  // If customer doesn't exist yet, create one
+  // -----------------------------
+  // CREATE CUSTOMER IF NOT EXISTS
+  // -----------------------------
   if (!razorpayCustomerId) {
     const customer = await razorpay.customers.create({
       name,
@@ -26,14 +29,54 @@ export const createRazorpaySubscription = async ({
 
     razorpayCustomerId = customer.id;
 
-    // Save customer id in database
     await userModel.findOneAndUpdate(
       { clerkId: user.clerkId },
       { razorpayCustomerId },
     );
   }
 
-  // Create subscription using existing customer
+  // -----------------------------
+  // IF USER ALREADY HAS SUBSCRIPTION
+  // → UPDATE PLAN (UPGRADE / DOWNGRADE)
+  // -----------------------------
+if (user.razorpaySubscriptionId) {
+
+  const existingSub = await razorpay.subscriptions.fetch(
+    user.razorpaySubscriptionId
+  );
+
+  const paymentMethod = existingSub.payment_method;
+
+  // CARD / NETBANKING → UPDATE
+  if (paymentMethod !== "upi") {
+
+    console.log("🔄 Updating existing subscription");
+
+    const updatedSubscription = await razorpay.subscriptions.update(
+      user.razorpaySubscriptionId,
+      {
+        plan_id: planId,
+        schedule_change_at: "now",
+      }
+    );
+
+    return updatedSubscription;
+
+  }
+
+  // UPI → CANCEL + CREATE NEW
+  console.log("⚠ UPI mandate detected, cancelling old subscription");
+
+  await razorpay.subscriptions.cancel(
+    user.razorpaySubscriptionId,
+    false
+  );
+}
+  // -----------------------------
+  // CREATE NEW SUBSCRIPTION
+  // -----------------------------
+  console.log("🆕 Creating new subscription");
+  console.log(planId, razorpayCustomerId);
   const subscription = await razorpay.subscriptions.create({
     plan_id: planId,
     customer_id: razorpayCustomerId,
@@ -44,6 +87,14 @@ export const createRazorpaySubscription = async ({
       planId: planId,
     },
   });
+
+  // Save subscription id
+  await userModel.findOneAndUpdate(
+    { clerkId: user.clerkId },
+    {
+      razorpaySubscriptionId: subscription.id,
+    },
+  );
 
   return subscription;
 };
