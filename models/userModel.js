@@ -34,7 +34,7 @@ const userSchema = new mongoose.Schema({
 
   credits: {
     type: mongoose.Schema.Types.Mixed,
-    default: 3,
+    default: 1,
   },
 
   lastCreditReset: {

@@ -8,7 +8,7 @@ export const resetDailyCredits = async (req, res) => {
       { plan: "free" },
       {
         $set: {
-          credits: 3,
+          credits: 1,
           generationCount: 0,
           lastCreditReset: new Date(),
         },

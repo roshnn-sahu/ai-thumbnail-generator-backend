@@ -11,7 +11,7 @@ cron.schedule("0 0 * * *", async () => {
             { plan: "free" },
             {
                 $set: {
-                    credits: 3,
+                    credits: 1,
                     generationCount: 0,
                     lastCreditReset: new Date(),
                 },
