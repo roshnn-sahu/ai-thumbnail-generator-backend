@@ -76,7 +76,6 @@ if (user.razorpaySubscriptionId) {
   // CREATE NEW SUBSCRIPTION
   // -----------------------------
   console.log("🆕 Creating new subscription");
-  console.log(planId, razorpayCustomerId);
   const subscription = await razorpay.subscriptions.create({
     plan_id: planId,
     customer_id: razorpayCustomerId,
