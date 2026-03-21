@@ -25,7 +25,7 @@ export const requireAuth = async (req, res, next) => {
       user = await userModel.create({
         clerkId,
         plan: "free",
-        credits: 3,
+        credits: 1,
         generationCount: 0,
       });
     }
