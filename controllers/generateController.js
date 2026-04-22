@@ -114,3 +114,56 @@ export const generateThumbnail = async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 };
+
+
+export const imageToPrompt = async (req, res) => {
+    try {
+        const { image } = req.body;
+                if (!image) {
+            return res.status(400).json({ error: "No image data provided" });
+        }
+
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Authorization": "Bearer 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",
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                model: "nvidia/nemotron-nano-12b-v2-vl:free",
+                messages: [
+                    {
+                        role: "user",
+                        content: [
+                            {
+                                type: "text",
+                                text: "Analyze this image and convert it into a cinematic AI image prompt with lighting, composition, colors, and ultra-realistic quality tags. Output only the prompt."
+                            },
+                            {
+                                type: "image_url",
+                                image_url: {
+                                    url: image
+                                }
+                            }
+                        ]
+                    }
+                ]
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("OpenRouter Error:", errorText);
+            return res.status(500).json({ error: "Failed to generate prompt from AI" });
+        }
+
+        const data = await response.json();
+        const result = data.choices?.[0]?.message?.content;
+
+        return res.json({ prompt: result });
+    } catch (error) {
+        console.error("Image-to-prompt error:", error);
+        return res.status(500).json({ error: error.message });
+    }
+}
+

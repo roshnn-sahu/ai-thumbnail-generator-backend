@@ -1,5 +1,8 @@
 import express from "express";
-import { generateThumbnail } from "../controllers/generateController.js";
+import {
+  generateThumbnail,
+  imageToPrompt,
+} from "../controllers/generateController.js";
 import { requireAuth } from "../middleware/auth.js";
 import { checkCredits } from "../middleware/checkCredits.js";
 import { checkPlan } from "../middleware/checkPlan.js";
@@ -11,6 +14,13 @@ router.post(
   checkCredits,
   checkPlan,
   generateThumbnail,
+);
+router.post(
+  "/image-to-prompt",
+  requireAuth,
+  checkCredits,
+  checkPlan,
+  imageToPrompt,
 );
 
 export default router;
