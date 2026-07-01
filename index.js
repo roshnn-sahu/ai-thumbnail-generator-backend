@@ -1,4 +1,4 @@
-import "./config/env.js";
+
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -8,6 +8,8 @@ import userRoutes from "./routers/userRoutes.js";
 import generateRoutes from "./routers/generateRoutes.js";
 import subscriptionRoutes from "./routers/subscriptionRoutes.js";
 import resetCreditsRoutes from "./routers/resetCreditsRoutes.js"
+import dotenv from "dotenv";
+dotenv.config();
 
 
 import { connectDB } from "./db/db.js";
