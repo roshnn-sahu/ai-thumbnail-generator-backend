@@ -19,6 +19,7 @@ const app = express();
 const allowedOrigins = [
   process.env.FRONTEND_URL || "http://localhost:3000",
   "https://ai-thumbnail-generator-five.vercel.app",
+ "https://www.boltcreator.online/",
 ];
 
 app.use(
