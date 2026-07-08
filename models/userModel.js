@@ -42,7 +42,6 @@ const userSchema = new mongoose.Schema({
     default: Date.now,
   },
   generationCount: { type: Number, default: 0 },
-
   createdAt: { type: Date, default: Date.now },
 });
 

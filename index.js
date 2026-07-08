@@ -21,7 +21,7 @@ const app = express();
 const allowedOrigins = [
   process.env.FRONTEND_URL || "http://localhost:3000",
   "https://ai-thumbnail-generator-five.vercel.app",
- "https://www.boltcreator.online/",
+  "https://www.boltcreator.online/",
 ];
 
 app.use(
@@ -55,7 +55,7 @@ app.get("/", (req, res) => {
 
 app.use("/api/users", userRoutes);
 app.use("/api/generate", generateRoutes);
-app.use("/api/cron",resetCreditsRoutes)
+app.use("/api/cron", resetCreditsRoutes)
 // Global Error Handler
 app.use((err, req, res, next) => {
   console.error("❌ Global Error Handler:", err.stack || err.message);
