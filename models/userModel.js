@@ -43,26 +43,7 @@ const userSchema = new mongoose.Schema({
   },
   generationCount: { type: Number, default: 0 },
 
-<<<<<<< Updated upstream
   createdAt: { type: Date, default: Date.now },
-=======
-    credits: {
-        type: mongoose.Schema.Types.Mixed,
-        default: 3,
-    },
-    imageToPromptCredits: {
-        type: Number,
-        default: 1,
-    },
-
-    lastCreditReset: {
-        type: Date,
-        default: Date.now,
-    },
-    generationCount: { type: Number, default: 0 },
-
-    createdAt: { type: Date, default: Date.now },
->>>>>>> Stashed changes
 });
 
 const userModel = mongoose.model("User", userSchema);

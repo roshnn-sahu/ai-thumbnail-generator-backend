@@ -1,16 +1,7 @@
 import userModel from "../models/userModel.js";
 
-<<<<<<< Updated upstream
 export const checkCredits = async (req, res, next) => {
   const userId = req.auth?.sub;
-=======
-export const checkCredits = (creditType = "credits") => async (
-    req,
-    res,
-    next,
-) => {
-    const userId = req.auth?.sub;
->>>>>>> Stashed changes
 
   if (!userId) {
     return res.status(401).json({ message: "Unauthorized" });
@@ -26,13 +17,6 @@ export const checkCredits = (creditType = "credits") => async (
     return next();
   }
 
-<<<<<<< Updated upstream
-  if (user.credits <= 0) {
-    return res.status(403).json({
-      message: "No credits left. Upgrade your plan.",
-    });
-  }
-=======
     // Pro users get unlimited image-to-prompt but limited thumbnails
     if (creditType === "imageToPromptCredits" && user.plan === "pro") {
         return next();
@@ -46,7 +30,6 @@ export const checkCredits = (creditType = "credits") => async (
             creditType
         });
     }
->>>>>>> Stashed changes
 
   req.dbUser = user;
 
