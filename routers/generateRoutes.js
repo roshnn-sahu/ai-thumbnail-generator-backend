@@ -8,14 +8,14 @@ const router = express.Router();
 router.post(
   "/generate-thumbnail",
   requireAuth,
-  checkCredits,
+  checkCredits("credits"),
   checkPlan,
   generateThumbnail,
 );
 router.post(
   "/image-to-prompt",
   requireAuth,
-  checkCredits,
+  checkCredits("imageToPromptCredits"),
   checkPlan,
   imageToPrompt,
 );

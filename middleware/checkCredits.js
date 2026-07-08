@@ -1,7 +1,9 @@
 import userModel from "../models/userModel.js";
 
-export const checkCredits = async (req, res, next) => {
+export const checkCredits = (creditType = "credits") => async ( req, res, next,) => {
   const userId = req.auth?.sub;
+
+  const creditType = req.query.creditType || 'credits';
 
   if (!userId) {
     return res.status(401).json({ message: "Unauthorized" });
@@ -17,19 +19,19 @@ export const checkCredits = async (req, res, next) => {
     return next();
   }
 
-    // Pro users get unlimited image-to-prompt but limited thumbnails
-    if (creditType === "imageToPromptCredits" && user.plan === "pro") {
-        return next();
-    }
+  // Pro users get unlimited image-to-prompt but limited thumbnails
+  if (creditType === "imageToPromptCredits" && user.plan === "pro") {
+    return next();
+  }
 
-    const currentCredits = user[creditType];
+  const currentCredits = user[creditType];
 
-    if (currentCredits <= 0) {
-        return res.status(403).json({
-            message: `No ${creditType === "credits" ? "thumbnail" : "image-to-prompt"} credits left. Upgrade your plan.`,
-            creditType
-        });
-    }
+  if (currentCredits <= 0) {
+    return res.status(403).json({
+      message: `No ${creditType === "credits" ? "thumbnail" : "image-to-prompt"} credits left. Upgrade your plan.`,
+      creditType
+    });
+  }
 
   req.dbUser = user;
 
