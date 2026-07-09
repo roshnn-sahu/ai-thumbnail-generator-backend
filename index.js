@@ -16,6 +16,7 @@ import { connectDB } from "./db/db.js";
 connectDB();
 
 const app = express();
+const PORT = process.env.PORT || 5000;
 
 
 const allowedOrigins = [
@@ -47,7 +48,6 @@ app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(helmet());
 app.use(morgan("dev"));
 
-const PORT = process.env.PORT || 5000;
 
 app.get("/", (req, res) => {
   res.send("Server Is Running!");
@@ -56,6 +56,7 @@ app.get("/", (req, res) => {
 app.use("/api/users", userRoutes);
 app.use("/api/generate", generateRoutes);
 app.use("/api/cron", resetCreditsRoutes)
+
 // Global Error Handler
 app.use((err, req, res, next) => {
   console.error("❌ Global Error Handler:", err.stack || err.message);
